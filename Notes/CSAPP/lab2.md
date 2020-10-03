@@ -13,14 +13,14 @@
 lizhujun
 ```
 
-##  
+
 
 ## 2. 实验环境
 
 - Ubuntu虚拟机
 - bochs，Linux-0.11
 
-##  
+
 
 ## 3. 实验内容
 
@@ -151,8 +151,6 @@ int main(int arg, char ** argv)
 
 
 ## 4.实验结果
-
-
 
 
 
