@@ -6,4 +6,4 @@
 
 
 	+ Labs
-	1. lab2 upload in 2020.10.5
+		1. lab2 upload in 2020.10.5
